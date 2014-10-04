@@ -29,7 +29,17 @@ hcat.describe <- function(tablename, database="default"){
 	if (missing(tablename))
 		stop("Need to specify HCat table.")
 	res <- system(paste("hcat -e 'USE ", database, ";DESCRIBE ", tablename, "'"), intern=TRUE, ignore.stderr=TRUE)
-	res
+	colname <- c()
+	coltype <- c()
+	coldesc <- c()
+	for (i in 1:length(res)) {
+		collist <- strsplit(res[i], "\t")[[1]]
+		colname <- c(colname, str_trim(collist[1], side = "both"))
+		coltype <- c(coltype, str_trim(collist[2], side = "both"))
+		coldesc <- c(coldesc, str_trim(collist[3], side = "both"))
+	}
+	coldata <- data.frame(colname, coltype, coldesc)
+	coldata
 }
 
 #' hcat.gettabledirectory
