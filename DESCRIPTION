@@ -1,0 +1,11 @@
+Package: hcat
+Title: HCatalog Functions for R
+Version: 0.1
+Authors@R: "Jeffrey Aven <info@avensolutions.com> [aut, cre]"
+Description: Provides abstracted interface to Hcatalog definitions
+Depends:
+    R (>= 3.0.0),
+    stringr
+License: Copyright (c) 2011, under the Creative Commons
+    Attribution-NonCommercial 3.0 Unported (CC BY-NC 3.0) License
+LazyData: true
