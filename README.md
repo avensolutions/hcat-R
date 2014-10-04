@@ -1,6 +1,6 @@
 # hcat-R
 
-HCat Functions for R
+HCatalog Functions for R
 
 ## Features
 
