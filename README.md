@@ -27,5 +27,15 @@ stringr
 	[1] "testtable"
 	> hcat.gettabledirectory("testtable")
 	[1] "hdfs://hdpmaster1.hdp.hadoop:8020/apps/hive/warehouse/testtable"
+	> hcat.describe("mortdata")
+	       colname coltype coldesc
+	1           id      int    None
+	2  creditscore     	int    None
+	3     houseage     	int    None
+	4  yearsemploy     	int    None
+	5       ccdebt     	int    None
+	6         year     	int    None
+	7      default     	int    None
+
 
 
