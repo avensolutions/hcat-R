@@ -58,3 +58,63 @@ hcat.gettabledirectory  <- function(tablename, database="default"){
 	}
 	locstrarray[2]
 }
+
+#' hcat.execute
+#'
+#' Executes a HQL Query against an object in HCatalog
+#' @return Results as 
+#'		a data frame if no output directory is specified; or
+#'		writes results to a file in HDFS in the specified output directory with the specified fieldDelimiter
+#' @usage hcat.execute(hqlQuery, database="default", outputDir="", fieldDelimiter="\t")
+hcat.execute <- function(hqlQuery, database="default", outputDir="", fieldDelimiter="\\t"){
+	# create temp view for output schema
+	tmpViewName <- paste("tmp_", gsub("\\.", "", as.numeric(Sys.time())), sep="")
+	viewCreateSql <- paste("hive -e 'USE ", database, "; CREATE VIEW ", tmpViewName, " AS ", hqlQuery, "'", sep="")		
+	system(viewCreateSql, intern=TRUE, ignore.stderr=TRUE)
+	if (identical(outputDir, "")) {
+		# no output dir selected prepare data frame for query results
+		# get output schema
+		coldata <- hcat.describe(tmpViewName, database)
+		cols <- coldata[1:1]
+		collist <- ""
+		for(i in 1:nrow(cols)) {
+			row <- cols[i,]
+			collist  <- paste(collist, row)
+		}
+		collist <- sub("^\\s+", "", collist)
+		collistc <- strsplit(collist, " ")[[1]]
+		# drop temp view
+		viewDropSql <- paste("hive -e 'USE ", database, "; DROP VIEW ", tmpViewName, "'", sep="")		
+		system(viewDropSql, intern=TRUE, ignore.stderr=TRUE)
+		#
+		sqlQuery <- paste("hive -e 'USE ", database, ";", hqlQuery, "'", sep="")
+		res <- system(sqlQuery, intern=TRUE, ignore.stderr=TRUE)
+		outframe <- read.table(textConnection(res), sep="\t", col.names=collistc)
+	} else {
+		# write query results to designated output directory
+		# create temp external table
+		tmpTableName <- paste(tmpViewName, "_EXT", sep="")
+		coldata <- hcat.describe(tmpViewName, database)
+		collist <- "("
+		for(i in 1:nrow(coldata)) {
+			colname <- coldata[i,1]
+			coltype <- coldata[i,2]
+			collist  <- paste(collist, colname, coltype, ",")
+		}
+		collist <- sub("^\\s+", "", collist)
+		collist <- sub("..$","", collist)
+		collist <- paste(collist, ")")
+		createTableDDL <- paste("CREATE EXTERNAL TABLE ", tmpTableName, collist, " ROW FORMAT DELIMITED FIELDS TERMINATED BY '", fieldDelimiter, "' STORED AS TEXTFILE LOCATION '", outputDir, "'", sep="")
+		sqlQuery <- paste('hive -e "USE ', database, ";", createTableDDL, '"', sep="")
+		system(sqlQuery, intern=TRUE, ignore.stderr=TRUE)
+		# insert results into external table
+		sqlQuery <- paste("hive -e 'USE ", database, "; INSERT INTO TABLE ", tmpTableName, " ", hqlQuery, "'", sep="")
+		system(sqlQuery, intern=TRUE, ignore.stderr=TRUE)
+		# drop temp table
+		tableDropSql <- paste("hive -e 'USE ", database, "; DROP TABLE ", tmpTableName, "'", sep="")		
+		system(tableDropSql, intern=TRUE, ignore.stderr=TRUE)
+		# drop view
+		viewDropSql <- paste("hive -e 'USE ", database, "; DROP VIEW ", tmpViewName, "'", sep="")		
+		system(viewDropSql, intern=TRUE, ignore.stderr=TRUE)		
+	}
+} 
